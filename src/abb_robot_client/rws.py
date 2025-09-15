@@ -91,20 +91,20 @@ class TaskState(NamedTuple):
 
 class JointTarget(NamedTuple):
     """Joint target in degrees or millimeters"""
-    robax: np.array
+    robax: np.ndarray
     """Robot axes positions. Six entry array"""
-    extax: np.array
+    extax: np.ndarray
     """Extra axes positions. Six entry array"""
 
 class RobTarget(NamedTuple):
     """Robtarget"""
-    trans: np.array
+    trans: np.ndarray
     """Translation in millimeters. Three entry array"""
-    rot: np.array
+    rot: np.ndarray
     """Rotation in quaternion units [w,x,y,z]"""
-    robconf: np.array
+    robconf: np.ndarray
     """4 entry configuration of robot. See `confdata` datatype in the ABB RAPID manuals for explanation"""
-    extax: np.array
+    extax: np.ndarray
     """Extra axes positions. Six entry array"""
 
 class IpcMessage(NamedTuple):

@@ -6,16 +6,9 @@ import urllib3
 import datetime
 from enum import IntEnum
 from loguru import logger
-
+import numpy as np
+from abb_robot_client.rws import ABBException, JointTarget, RobTarget
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-class ABBException(Exception):
-    """
-    Exception returned from ABB controller
-    """
-    def __init__(self, message, code):
-        super(ABBException, self).__init__(message)
-        self.code=code
 
 class RAPIDExecutionState(BaseModel):
     ctrlexecstate: Any
@@ -60,16 +53,6 @@ class ExtAx(BaseModel):
     eax_e: float
     eax_f: float
     
-class JointTarget(BaseModel):
-    robax: RobAx
-    extax: ExtAx
-
-class RobTarget(BaseModel):
-    trans: Any
-    rot: Any
-    robconf: Any
-    extax: Any
-
 class IpcMessage(BaseModel):
     data: str
     userdef: str
@@ -121,6 +104,17 @@ class SubscriptionResourceRequest(BaseModel):
     param: Any = None
     
 class RWS2:
+    """
+    Robot Web Services 2.0 synchronous client. This class uses ABB Robot Web Services HTTP REST interface to interact
+    with robot controller. Subscriptions can be created to provide streaming information. See the ABB
+    documentation for more information: https://developercenter.robotstudio.com/api/RWS
+
+    :param base_url: Base URL of the robot. For Robot Studio instances, this should be https://127.0.0.1:80,
+                     the default value. For a real robot, 127.0.0.1 should be replaced with the IP address
+                     of the robot controller. The WAN port ethernet must be used, not the maintenance port.
+    :param username: The HTTPS username for the robot. Defaults to 'Default User'
+    :param password: The HTTPS password for the robot. Defaults to 'robotics'
+    """
     def __init__(self, base_url: str='https://127.0.0.1:80', username: str="Default User", password: str="robotics"):
         self.base_url = base_url
         self.username = username
@@ -529,11 +523,12 @@ class RWS2:
             raise Exception("No joint target state found")
 
         joint_data = state_list[0]
-        jointtarget_dict = {
-            "robax": {k: joint_data[k] for k in ["rax_1", "rax_2", "rax_3", "rax_4", "rax_5", "rax_6"]},
-            "extax": {k: joint_data[k] for k in ["eax_a", "eax_b", "eax_c", "eax_d", "eax_e", "eax_f"]}
-        }
-        return JointTarget.model_validate(jointtarget_dict)
+        robjoint=np.array([joint_data["rax_1"], joint_data["rax_2"], joint_data["rax_3"], joint_data["rax_4"], joint_data["rax_5"], 
+            joint_data["rax_6"]], dtype=np.float64)
+        extjoint=np.array([joint_data["eax_a"], joint_data["eax_b"], joint_data["eax_c"], joint_data["eax_d"], joint_data["eax_e"], 
+            joint_data["eax_f"]], dtype=np.float64)
+        return JointTarget(robax=robjoint, extax=extjoint)
+
     
     def get_robtarget(self, mechunit='ROB_1', tool='tool0', wobj='wobj0', coordinate='Base') -> RobTarget:
         """
@@ -548,14 +543,13 @@ class RWS2:
         """
         res_json=self._do_get(f"rw/motionsystem/mechunits/{mechunit}/robtarget?tool={tool}&wobj={wobj}&coordinate={coordinate}")
         state = res_json["state"][0]
-        robtarget_dict = {
-            "trans": [state[i] for i in ["x", "y", "z"]],
-            "rot": [state[i] for i in ["q1", "q2", "q3", "q4"]],
-            "robconf": [state[i] for i in ["cf1", "cf4", "cf6", "cfx"]],
-            "extax": [state[i] for i in ["eax_a", "eax_b", "eax_c", "eax_d", "eax_e", "eax_f"]],
-        }
-            
-        return RobTarget.model_validate(robtarget_dict)
+        trans=np.array([state["x"], state["y"], state["z"]], dtype=np.float64)
+        rot=np.array([state["q1"], state["q2"], state["q3"], state["q4"]], dtype=np.float64)
+        robconf=np.array([state["cf1"],state["cf4"],state["cf6"],state["cfx"]], dtype=np.float64)
+        extax=np.array([state["eax_a"], state["eax_b"], state["eax_c"], state["eax_d"], state["eax_e"], 
+            state["eax_f"]], dtype=np.float64)
+        return RobTarget(trans,rot,robconf,extax)
+
     
     # def _rws_value_to_jointtarget(self, val):
     #     v1=re.match('^\\[\\[([^\\]]+)\\],\\[([^\\]]+)\\]',val)
