@@ -1,0 +1,39 @@
+[project]
+name = "abb-robot-client"
+version = "0.5.0"
+description = "Python client library to access ABB robots using RWS and EGM"
+readme = "README.md"
+authors = [
+    { name = "John Wason", email = "john.wason@example.com" },
+    { name = "MESH AG", email = "koh@mesh.ch" }
+
+]
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+    "numpy>=2.3.3",
+    "protobuf>=6.32.1",
+    "pydantic>=2.11.7",
+    "requests>=2.32.5",
+    "websocket-client>=1.8.0",
+]
+license = {file = "LICENSE.txt"}
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[project.urls]
+    homepage = "https://github.com/johnwason/abb_robot_client"
+    repository = "https://github.com/johnwason/abb_robot_client"
+    documentation = "https://github.com/johnwason/abb_robot_client#documentation"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
