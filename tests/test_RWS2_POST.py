@@ -29,16 +29,27 @@ def test_set_speedratio(client):
     assert client.get_speedratio() == 100
     
 def test_set_digital_io(client):
-    io_state = client.get_digital_io("motion_program_error")
-    new_state = '1' if io_state == '0' else '0'
-    client.set_digital_io("motion_program_error", new_state)
-    updated_state = client.get_digital_io("motion_program_error")
+    io_state = client.get_digital_io("motion_program_log_motion")
+    new_state = 1 if int(io_state) == 0 else 0
+    client.set_digital_io("motion_program_log_motion", new_state)
+    updated_state = client.get_digital_io("motion_program_log_motion")
     assert updated_state == int(new_state)
     time.sleep(0.5)
     # Restore original state
-    client.set_digital_io("motion_program_error", io_state)
-    assert client.get_digital_io("motion_program_error") == int(io_state)
+    client.set_digital_io("motion_program_log_motion", io_state)
+    assert client.get_digital_io("motion_program_log_motion") == int(io_state)
 
+def test_set_analog_io(client):
+    original_value = client.get_analog_io("motion_program_preempt")
+    new_value = original_value + 3.0
+    client.set_analog_io("motion_program_preempt", new_value)
+    updated_value = client.get_analog_io("motion_program_preempt")
+    assert updated_value == new_value
+    time.sleep(0.5)
+    # Restore original value
+    client.set_analog_io("motion_program_preempt", original_value)
+    assert client.get_analog_io("motion_program_preempt") == original_value
+    
 def test_start(client):
     client.set_motors_on()
     time.sleep(0.5)  # Wait for motors to turn on
@@ -91,3 +102,4 @@ def test_release_mastership(client):
     time.sleep(1)  # Simulate some operations while holding mastership
     result = client.release_mastership()
     print(result)
+

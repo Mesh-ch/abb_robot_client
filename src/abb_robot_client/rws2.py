@@ -314,7 +314,7 @@ class RWS2:
         value = self.get_io(signal, network, unit)
         return int(value)
     
-    def set_digital_io(self, signal: str, value: bool|int, network: str='Local', unit: str='DRV_1'):
+    def set_digital_io(self, signal: str, value: bool|int, network: str='', unit: str=''):
         """
         Set the value of an digital IO signal.
 
@@ -325,9 +325,14 @@ class RWS2:
         """
         lvalue = '1' if bool(value) else '0'
         payload={'lvalue': lvalue}
-        res=self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}?mastership=implicit", payload)
+        if network and unit:
+            url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
+        else: 
+            url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
+        res=self._do_post(url, payload)
+        
 
-    def get_analog_io(self, signal: str, network: str='Local', unit: str='DRV_1') -> float:
+    def get_analog_io(self, signal: str, network: str='', unit: str='') -> float:
         """
         Get the value of an analog IO signal.
 
@@ -339,18 +344,17 @@ class RWS2:
         value = self.get_io(signal, network, unit)
         return float(value)
     
-    # def set_analog_io(self, signal: str, value: Union[int,float], network: str='Local', unit: str='DRV_1'):
-    #     """
-    #     Set the value of an analog IO signal.
+    def set_analog_io(self, signal: str, value: Union[int,float], network: str='', unit: str=''):
+        """
+        Set the value of an analog IO signal.
 
-    #     :param value: The value of the signal
-    #     :param signal: The name of the signal
-    #     :param network: The network the signal is on. The default `Local` will work for most signals.
-    #     :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
-    #     """
-    #     payload={"mode": "value",'lvalue': value}
-    #     res=self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
-    
+        :param value: The value of the signal
+        :param signal: The name of the signal
+        :param network: The network the signal is on. The default `Local` will work for most signals.
+        :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
+        """
+        payload={"mode": "value",'lvalue': value}
+        res=self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit", payload)
     # def get_rapid_variables(self, task: str="T_ROB1") -> List[str]:
     #     """
     #     Get a list of the persistent variables in a task
