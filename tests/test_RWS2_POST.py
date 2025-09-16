@@ -1,4 +1,5 @@
 import pytest
+import time
 from abb_robot_client.rws2 import RWS2, EventLogEntry, JointTarget, RAPIDExecutionState, RobTarget
 
 @pytest.fixture(scope="module")
@@ -13,6 +14,10 @@ def client():
 #     for msg in messages:
 #         print("IPC Message:", msg)
 
+def test_resetpp(client):
+    client.resetpp()
+    print("Program pointer reset.")
+
 def test_set_speedratio(client):
     original_speedratio = client.get_speedratio()
     new_speedratio = 50 if original_speedratio != 50 else 60
@@ -22,6 +27,17 @@ def test_set_speedratio(client):
     # Restore original speed ratio
     client.set_speedratio(100)
     assert client.get_speedratio() == 100
+    
+def test_set_digital_io(client):
+    io_state = client.get_digital_io("motion_program_error")
+    new_state = '1' if io_state == '0' else '0'
+    client.set_digital_io("motion_program_error", new_state)
+    updated_state = client.get_digital_io("motion_program_error")
+    assert updated_state == int(new_state)
+    time.sleep(0.5)
+    # Restore original state
+    client.set_digital_io("motion_program_error", io_state)
+    assert client.get_digital_io("motion_program_error") == int(io_state)
 
 def test_start(client):
     client.start()
@@ -65,13 +81,11 @@ def test_toggle_motors(client):
     else:
         raise Exception(f"Controller in unexpected state: {motor_state}")
         
-if __name__ == "__main__":
-    rws = RWS2()
-    # rws.request_mastership()
-    #### POST REQUESTS ####
-    # test_set_speedratio(rws)
-    # test_start(rws)
-    # test_upload_delete_file(rws)
-    # test_set_rapid_variable_num(rws)
-    
-    
+def test_request_mastership(client):
+    client.request_mastership()
+
+def test_release_mastership(client):
+    result = client.request_mastership()
+    time.sleep(1)  # Simulate some operations while holding mastership
+    result = client.release_mastership()
+    print(result)

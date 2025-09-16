@@ -190,36 +190,36 @@ class RWS2:
                     self.deactivate_task(rob_task.name)
 
         payload={"regain": "continue", "execmode": "continue", "cycle": cycle, "condition": "none", "stopatbp": "disabled", "alltaskbytsp": "true"}
-        res=self._do_post("rw/rapid/execution/start", payload)
-        
+        res=self._do_post("rw/rapid/execution/start?mastership=implicit", payload)
+
     def activate_task(self, task: str):
         """
         Activate a RAPID task
 
         :param task: The name of the task to activate
         """
-        self._do_post("rw/rapid/tasks/activate", data={"task": task})
-        
-    def deactivate_task(self, task: str) -> None: 
+        self._do_post("rw/rapid/tasks/activate?mastership=implicit", data={"task": task})
+
+    def deactivate_task(self, task: str) -> None:
         """
         Deactivate a RAPID task
 
         :param task: The name of the task to deactivate
         """
-        self._do_post(f"rw/rapid/tasks/{task}/deactivate", data={"task": task})
+        self._do_post(f"rw/rapid/tasks/{task}/deactivate?mastership=implicit", data={"task": task})
 
     def stop(self):
         """
         Stop RAPID execution of normal tasks
         """
         payload={"stopmode": "stop"}
-        res=self._do_post("rw/rapid/execution/stop", payload)
+        res=self._do_post("rw/rapid/execution/stop?mastership=implicit", payload)
 
     def resetpp(self):
         """
         Reset RAPID program pointer to main in normal tasks
         """
-        res=self._do_post("rw/rapid/execution/resetpp")
+        res=self._do_post("rw/rapid/execution/resetpp?mastership=implicit")
         
     def get_ramdisk_path(self) -> str:
         """
@@ -257,9 +257,7 @@ class RWS2:
     def set_controller_state(self, ctrl_state): 
         """Possible ctrl-states to set are `motoroff` or `motoron`"""
         payload = {"ctrl-state": ctrl_state}
-        self.request_mastership()
-        res=self._do_post("rw/panel/ctrl-state", payload)
-        self.release_mastership()
+        res=self._do_post("rw/panel/ctrl-state?mastership=implicit", payload)
         
     def set_motors_on(self):
         """
@@ -326,7 +324,7 @@ class RWS2:
         """
         lvalue = '1' if bool(value) else '0'
         payload={'lvalue': lvalue}
-        res=self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}", payload)
+        res=self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}?mastership=implicit", payload)
 
     def get_analog_io(self, signal: str, network: str='Local', unit: str='DRV_1') -> float:
         """
@@ -383,7 +381,7 @@ class RWS2:
         :param task: The task containing the pers variable
         :return: The pers variable encoded as a string
         """
-        res_json = self._do_get(f"rw/rapid/symbol/RAPID/{task}/{var}/data")
+        res_json = self._do_get(f"rw/rapid/symbol/RAPID/{task}/{var}/data?mastership=implicit")
         state = res_json["state"][0]["value"]
         return state
 
@@ -401,7 +399,7 @@ class RWS2:
         else:
             var1 = var
         self.request_mastership()
-        res=self._do_post(f"rw/rapid/symbol/RAPID/{var1}/data/", payload)
+        res=self._do_post(f"rw/rapid/symbol/RAPID/{var1}/data?mastership=implicit", payload)
         self.release_mastership()
         
     def read_file(self, filename: str, directory: str = "$HOME") -> bytes:
@@ -409,6 +407,7 @@ class RWS2:
         Read a file off the controller
 
         :param filename: The relative path to the filename to read, e.g.: $HOME/...
+        :param directory: The directory to read the file from, e.g. $HOME
         :return: The file bytes
         """
         res_json = self._do_get_raw(f"fileservice/{directory}/{filename}")
@@ -426,6 +425,7 @@ class RWS2:
 
         :param filename: The filename to write
         :param contents: The file content as str
+        :param directory: The directory to write the file to, e.g. $HOME
         """
         url=f"{self.base_url}/fileservice/{directory}/{filename}"
         header = {"Content-Type": "text/plain;v=2.0"}
@@ -692,7 +692,7 @@ class RWS2:
         :param speedratio: The new speed ratio between 0% - 100%
         """
         payload = {"speed-ratio": str(speedratio)}
-        self._do_post(f"rw/panel/speedratio?mastership=implicit", payload)
+        self._do_post("rw/panel/speedratio?mastership=implicit", payload)
         
     
     # def send_ipc_message(self, target_queue: str, data: str, queue_name: str, cmd: int=111, userdef: int=1, msgtype: int=1 ):

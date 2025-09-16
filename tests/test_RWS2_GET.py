@@ -64,7 +64,7 @@ def test_read_event_log(client):
 def test_get_robtarget(client):
     robtarget = client.get_robtarget()
     assert isinstance(robtarget, RobTarget), f"Unexpected robtarget type: {type(robtarget)}"
-    
+    print(robtarget)
 
 def test_get_speedratio(client):
     speedratio = client.get_speedratio()
@@ -87,20 +87,20 @@ def test_get_speedratio(client):
 if __name__ == "__main__":
     rws = RWS2()
     #### GET REQUESTS ####
-    test_get_tasks(rws)
+    # test_get_tasks(rws)
     test_get_jointtargets(rws)
-    test_get_execution_state(rws)
-    test_get_ramdisk_paths(rws)
-    test_get_controller_state(rws)
-    test_get_operation_mode(rws)
-    test_get_digital_io(rws)
-    test_get_analog_io(rws)
-    test_get_rapid_variable(rws)
-    test_get_rapid_variable_num(rws)
-    test_read_file(rws)
-    test_read_event_log(rws)
-    test_read_event_log(rws)
+    # test_get_execution_state(rws)
+    # test_get_ramdisk_paths(rws)
+    # test_get_controller_state(rws)
+    # test_get_operation_mode(rws)
+    # test_get_digital_io(rws)
+    # test_get_analog_io(rws)
+    # test_get_rapid_variable(rws)
+    # test_get_rapid_variable_num(rws)
+    # test_read_file(rws)
+    # test_read_event_log(rws)
+    # test_read_event_log(rws)
     test_get_robtarget(rws)
-    test_get_speedratio(rws)
+    # test_get_speedratio(rws)
     # test_get_ipc_queue(rws)
     # test_ipc_message(rws)
