@@ -74,17 +74,10 @@ def test_is_mastered(client):
     mastered = client.is_mastered()
     assert isinstance(mastered, bool)
     
-# def test_get_ipc_queue(client):
-#     messages = client.get_ipc_queue("testq")
-#     assert isinstance(messages, dict)
-#     assert "messages" in messages
-#     assert isinstance(messages["messages"], list)
-    
-# def test_ipc_message(client):
-#     messages = client.read_ipc_message("MY_QUEUE", timeout=5)
-#     assert isinstance(messages, list)
-#     for msg in messages:
-#         print("IPC Message:", msg)
+def test_get_mechunits(client):
+    mechunits = client.get_mechunits()
+    assert isinstance(mechunits, list)
+    assert "ROB_1" in mechunits
         
         
 if __name__ == "__main__":

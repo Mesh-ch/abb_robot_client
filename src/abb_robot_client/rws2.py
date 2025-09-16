@@ -564,7 +564,16 @@ class RWS2:
             state["eax_f"]], dtype=np.float64)
         return RobTarget(trans,rot,robconf,extax)
 
-    
+    def get_mechunits(self) -> List[str]:
+        """
+        Get the mechanical units on the controller
+
+        :return: List of mechanical units
+        """
+        res_json=self._do_get("rw/motionsystem/mechunits")
+        state = res_json["_embedded"]["resources"]
+        
+        return [s["_title"] for s in state]
     # def _rws_value_to_jointtarget(self, val):
     #     v1=re.match('^\\[\\[([^\\]]+)\\],\\[([^\\]]+)\\]',val)
     #     robax = np.deg2rad(np.fromstring(v1.groups()[0],sep=','))
