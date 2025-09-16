@@ -17,8 +17,6 @@ Web Services (RWS) using HTTP REST, and the ability to create subscriptions usin
 identical functionality to `rws`, but uses asyncio, with each method being `async`. `egm` provides an Externally
 Guided Motion (EGM) client.
 
-A Robot Raconteur driver is also provided. This driver provides access to RWS and EGM.
-
 Documentation can be found at: https://abb_robot_client.readthedocs.org
 
 ## Installation
@@ -28,8 +26,10 @@ uv add https://github.com/Mesh-ch/abb_robot_client.git
 ```
 
 ## Tests
-
-
+To run the interactive testing app for RWS2
+```
+uv run tests\RWS2_test_app.py
+```
 ## License
 
 Apache 2.0
