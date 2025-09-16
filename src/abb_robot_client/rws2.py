@@ -685,13 +685,13 @@ class RWS2:
             raise Exception("Invalid speedratio type")
         return float(state["speedratio"])
     
-    def set_speedratio(self, speedratio: float):
+    def set_speedratio(self, speedratio: int):
         """
         Set the current speed ratio
 
         :param speedratio: The new speed ratio between 0% - 100%
         """
-        payload = {"speed-ratio": str(speedratio)}
+        payload = {"speed-ratio": str(int(speedratio))}
         self._do_post("rw/panel/speedratio?mastership=implicit", payload)
         
     
