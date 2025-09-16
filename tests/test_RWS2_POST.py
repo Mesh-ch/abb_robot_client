@@ -40,6 +40,8 @@ def test_set_digital_io(client):
     assert client.get_digital_io("motion_program_error") == int(io_state)
 
 def test_start(client):
+    client.set_motors_on()
+    time.sleep(0.5)  # Wait for motors to turn on
     client.start()
     print("Robot started.")
     
