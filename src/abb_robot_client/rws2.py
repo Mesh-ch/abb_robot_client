@@ -403,7 +403,7 @@ class RWS2:
         res=self._do_post(f"rw/rapid/symbol/RAPID/{var1}/data?mastership=implicit", payload)
         self.release_mastership()
         
-    def read_file(self, filename: str, directory: str = "$HOME") -> bytes:
+    def read_file(self, filename: str, directory: str = "") -> bytes:
         """
         Read a file off the controller
 
@@ -411,16 +411,19 @@ class RWS2:
         :param directory: The directory to read the file from, e.g. $HOME
         :return: The file bytes
         """
-        res_json = self._do_get_raw(f"fileservice/{directory}/{filename}")
+        if directory: #used for RWS 1 backwards compatibility with abb_motion_exec
+            res_json = self._do_get_raw(f"fileservice/{directory}/{filename}")
+        else:
+            res_json = self._do_get_raw(f"fileservice/{filename}")
 
         contents = res_json.content
         return contents
     
-    def read_file_str(self, filename: str, directory: str = "$HOME") -> str:
+    def read_file_str(self, filename: str, directory: str = "") -> str:
         res_bytes = self.read_file(filename, directory)
         return res_bytes.decode('utf-8')
 
-    def upload_file(self, filename: str, contents: str, directory: str = "$HOME") -> None:
+    def upload_file(self, filename: str, contents: str, directory: str = "") -> None:
         """
         Upload a file to the controller
 
@@ -428,20 +431,26 @@ class RWS2:
         :param contents: The file content as str
         :param directory: The directory to write the file to, e.g. $HOME
         """
-        url=f"{self.base_url}/fileservice/{directory}/{filename}"
+        if directory: #used for RWS 1 backwards compatibility with abb_motion_exec
+            url=f"{self.base_url}/fileservice/{directory}/{filename}"
+        else:
+            url=f"{self.base_url}/fileservice/{filename}"
         header = {"Content-Type": "text/plain;v=2.0"}
         res=self._session.put(url, contents, auth=self.auth, headers=header)
         if not res.ok:
             raise Exception(res.reason)
         res.close()
 
-    def delete_file(self, filename: str, directory: str = "$HOME") -> None:
+    def delete_file(self, filename: str, directory: str = "") -> None:
         """
         Delete a file on the controller
 
         :param filename: The filename to delete
         """
-        url=f"{self.base_url}/fileservice/{directory}/{filename}"
+        if directory: #used for RWS 1 backwards compatibility with abb_motion_exec
+            url=f"{self.base_url}/fileservice/{directory}/{filename}"
+        else:
+            url=f"{self.base_url}/fileservice/{filename}"
         res=self._session.delete(url, auth=self.auth, headers=self.header)
         res.close()
     

@@ -47,13 +47,13 @@ def test_start(client):
     
 def test_upload_delete_file(client):
     test_content = "Test file content"
-    client.upload_file("test_upload.txt", test_content)
-    uploaded_content = client.read_file("test_upload.txt")
+    client.upload_file("test_upload.txt", test_content, directory="$HOME")
+    uploaded_content = client.read_file("test_upload.txt", directory="$HOME")
     if isinstance(uploaded_content, bytes):
         uploaded_content = uploaded_content.decode("utf-8")
     assert uploaded_content == test_content
-    client.delete_file("test_upload.txt")
-    contents = client.read_file_str("test_upload.txt")  # Should raise an error if file is deleted
+    client.delete_file("test_upload.txt", directory="$HOME")
+    contents = client.read_file_str("test_upload.txt", directory="$HOME")  # Should raise an error if file is deleted
     assert "Path does not exist" in contents
     
 def test_set_rapid_variable(client):
