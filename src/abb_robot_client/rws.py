@@ -781,7 +781,7 @@ class RWS:
             #o.append(RAPIDEventLogEntry(msg_type,code,tstamp,args,title,desc,conseqs,causes,actions))
         return o
     
-    def get_speedratio(self) -> float:
+    def get_speedratio(self) -> int:
         """
         Get the current speed ratio
 
@@ -791,7 +791,7 @@ class RWS:
         state = res_json["_embedded"]["_state"][0]
         if not state["_type"] == "pnl-speedratio":
             raise Exception("Invalid speedratio type")
-        return float(state["speedratio"])
+        return int(state["speedratio"])
     
     def set_speedratio(self, speedratio: int):
         """
