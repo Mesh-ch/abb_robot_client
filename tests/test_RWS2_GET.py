@@ -69,7 +69,10 @@ def test_get_robtarget(client):
 def test_get_speedratio(client):
     speedratio = client.get_speedratio()
     assert 0<=speedratio<=100
-    
+
+def test_is_mastered(client):
+    mastered = client.is_mastered()
+    assert isinstance(mastered, bool)
     
 # def test_get_ipc_queue(client):
 #     messages = client.get_ipc_queue("testq")

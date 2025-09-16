@@ -1,3 +1,4 @@
+import time
 from typing import List, Optional, Any, Union
 from pydantic import BaseModel
 from requests.auth import HTTPBasicAuth
@@ -694,7 +695,23 @@ class RWS2:
         payload = {"speed-ratio": str(int(speedratio))}
         self._do_post("rw/panel/speedratio?mastership=implicit", payload)
         
-    
+    def is_mastered(self) -> bool:
+        """Check the mastership of the robot via via RWS """
+
+        domains = ["motion", "edit"]
+        results = []
+        for domain in domains:
+            try:
+                result = self._do_get(f"rw/mastership/{domain}")
+                results.append(result["state"][0]["mastership"] != "nomaster")
+                time.sleep(0.1)
+            except ABBException as e:
+                if e.code == -1073445376:
+                    return False
+                raise
+            
+        is_mastered = any(results)
+        return is_mastered
     # def send_ipc_message(self, target_queue: str, data: str, queue_name: str, cmd: int=111, userdef: int=1, msgtype: int=1 ):
     #     """
     #     Send an IPC message to the specified queue
