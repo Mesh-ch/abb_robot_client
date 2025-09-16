@@ -21,17 +21,18 @@ def test_start(client):
     
 def test_upload_delete_file(client):
     test_content = "Test file content"
-    client.upload_file("test_upload.txt", test_content)
-    uploaded_content = client.read_file("test_upload.txt")
+    path = client.get_ramdisk_path()
+    client.upload_file(f"{path}/test_upload.txt", test_content)
+    uploaded_content = client.read_file(f"{path}/test_upload.txt")
     if isinstance(uploaded_content, bytes):
         uploaded_content = uploaded_content.decode("utf-8")
     assert uploaded_content == test_content
-    client.delete_file("test_upload.txt")
+    client.delete_file(f"{path}/test_upload.txt")
     try:
-        contents = client.read_file("test_upload.txt")  # Should raise an error if file is deleted
+        contents = client.read_file(f"{path}/test_upload.txt")  # Should raise an error if file is deleted
     except Exception as e:
         contents = str(e)
-        assert e.args[0] == "File not found test_upload.txt"
+        assert "File not found" in e.args[0]
     
 def test_set_rapid_variable(client):
     variable = client.get_rapid_variable_num("test_num")  # Ensure variable exists

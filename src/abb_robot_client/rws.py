@@ -475,15 +475,14 @@ class RWS:
             var1 = var
         res=self._do_post("rw/rapid/symbol/data/RAPID/" + var1 + "?action=set", payload)
 
-    def read_file(self, filename: str, directory: str = "$HOME") -> bytes:
+    def read_file(self, filename: str) -> bytes:
         """
         Read a file off the controller
 
         :param filename: The filename to read
-        :param directory: The directory to read the file from, e.g. $HOME
         :return: The file bytes
         """
-        url = f"{self.base_url}/fileservice/{directory}/{filename}"
+        url = f"{self.base_url}/fileservice/{filename}"
         res=self._session.get(url, auth=self.auth)
         if not res.ok:
             raise Exception(f"File not found {filename}")
@@ -491,39 +490,37 @@ class RWS:
             return res.content
         finally:
             res.close()
-            
-    def read_file_str(self, filename: str, directory: str = "$HOME") -> str:
+
+    def read_file_str(self, filename: str) -> str:
         """
         Read a file off the controller as a string
 
         :param filename: The filename to read
-        :param directory: The directory to read the file from, e.g. $HOME
         :return: The file contents as a string
         """
-        b = self.read_file(filename, directory)
+        b = self.read_file(filename)
         return b.decode("utf-8")
 
-    def upload_file(self, filename: str, contents: bytes, directory: str = "$HOME"):
+    def upload_file(self, filename: str, contents: bytes):
         """
         Upload a file to the controller
 
         :param filename: The filename to write
         :param contents: The file content bytes
-        :param directory: The directory to write the file to, e.g. $HOME
         """
-        url = f"{self.base_url}/fileservice/{directory}/{filename}"
+        url = f"{self.base_url}/fileservice/{filename}"
         res=self._session.put(url, contents, auth=self.auth)
         if not res.ok:
             raise Exception(res.reason)
         res.close()
 
-    def delete_file(self, filename: str, directory: str = "$HOME"):
+    def delete_file(self, filename: str):
         """
         Delete a file on the controller
 
         :param filename: The filename to delete
         """
-        url = f"{self.base_url}/fileservice/{directory}/{filename}"
+        url = f"{self.base_url}/fileservice/{filename}"
         res=self._session.delete(url, auth=self.auth)
         res.close()
 
