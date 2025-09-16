@@ -474,15 +474,16 @@ class RWS:
         else:
             var1 = var
         res=self._do_post("rw/rapid/symbol/data/RAPID/" + var1 + "?action=set", payload)
-        
-    def read_file(self, filename: str) -> bytes:
+
+    def read_file(self, filename: str, directory: str = "$HOME") -> bytes:
         """
         Read a file off the controller
 
         :param filename: The filename to read
+        :param directory: The directory to read the file from, e.g. $HOME
         :return: The file bytes
         """
-        url="/".join([self.base_url, "fileservice", filename])
+        url = f"{self.base_url}/fileservice/{directory}/{filename}"
         res=self._session.get(url, auth=self.auth)
         if not res.ok:
             raise Exception(f"File not found {filename}")
@@ -490,27 +491,39 @@ class RWS:
             return res.content
         finally:
             res.close()
+            
+    def read_file_str(self, filename: str, directory: str = "$HOME") -> str:
+        """
+        Read a file off the controller as a string
 
-    def upload_file(self, filename: str, contents: bytes):
+        :param filename: The filename to read
+        :param directory: The directory to read the file from, e.g. $HOME
+        :return: The file contents as a string
+        """
+        b = self.read_file(filename, directory)
+        return b.decode("utf-8")
+
+    def upload_file(self, filename: str, contents: bytes, directory: str = "$HOME"):
         """
         Upload a file to the controller
 
         :param filename: The filename to write
         :param contents: The file content bytes
+        :param directory: The directory to write the file to, e.g. $HOME
         """
-        url="/".join([self.base_url, "fileservice" , filename])
+        url = f"{self.base_url}/fileservice/{directory}/{filename}"
         res=self._session.put(url, contents, auth=self.auth)
         if not res.ok:
             raise Exception(res.reason)
         res.close()
 
-    def delete_file(self, filename: str):
+    def delete_file(self, filename: str, directory: str = "$HOME"):
         """
         Delete a file on the controller
 
         :param filename: The filename to delete
         """
-        url="/".join([self.base_url, "fileservice" , filename])
+        url = f"{self.base_url}/fileservice/{directory}/{filename}"
         res=self._session.delete(url, auth=self.auth)
         res.close()
 
@@ -789,6 +802,26 @@ class RWS:
         payload = {"speed-ratio": str(speedratio)}
         self._do_post(f"rw/panel/speedratio?action=setspeedratio", payload)
         
+    def set_motors_on(self):
+        """Set the robot motors on"""
+        res = self.set_controller_state('motoron')
+        return res
+    
+    def set_motors_off(self):
+        """Set the robot motors off"""
+        res = self.set_controller_state('motoroff')
+        return res
+    
+    def get_mechunits(self) -> List[str]:
+        """
+        Get the mechanical units on the controller
+
+        :return: List of mechanical units
+        """
+        res_json=self._do_get("rw/motionsystem/mechunits")
+        state = res_json["_embedded"]["_state"]
+        
+        return [s["_title"] for s in state]
     
     def send_ipc_message(self, target_queue: str, data: str, queue_name: str, cmd: int=111, userdef: int=1, msgtype: int=1 ):
         """
@@ -906,6 +939,23 @@ class RWS:
        
         return state["status"] == "GRANTED"
 
+    def is_mastered(self) -> bool:
+        """Check the mastership of the robot via RWS 1.0 HTTPS REST"""
+
+        domains = ["cfg", "motion", "rapid"]
+        results = []
+        for domain in domains:
+            try:
+                result = self._do_get(f"rw/mastership/{domain}")
+                results.append(result["_embedded"]["_state"][0]["mastership"] != "nomaster")
+                time.sleep(0.1)
+            except ABBException as e:
+                if e.code == -1073445376:
+                    return False
+                raise
+            
+        is_mastered = any(results)
+        return is_mastered
 
     def subscribe(self, resources: List[SubscriptionResourceRequest], handler: Callable[[Any],None]) -> "RWSSubscription":
         """
