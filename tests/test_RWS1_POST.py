@@ -69,16 +69,6 @@ def test_toggle_motors(client):
         raise Exception(f"Controller in unexpected state: {motor_state}")
 
 
-def test_motors_on(client):
-    client.set_controller_state("motoron")
-    assert client.get_controller_state() == "motoron"
-
-
-def test_motors_off(client):
-    client.set_controller_state("motoroff")
-    assert client.get_controller_state() == "motoroff"
-
-
 def test_is_mastered(client):
     result = client.is_mastered()
     assert isinstance(result, bool)

@@ -6,7 +6,6 @@ import time
 import numpy as np
 
 _robot_url = "http://localhost:80"
-# _robot_url = "https://localhost:443"
 
 
 def test_controller_state():

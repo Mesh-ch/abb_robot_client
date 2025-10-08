@@ -512,14 +512,14 @@ class RWS:
             var1 = var
         _res = self._do_post("rw/rapid/symbol/data/RAPID/" + var1 + "?action=set", payload)
 
-    def read_file(self, filename: str) -> bytes:
+    def read_file(self, filename: str, directory: str = "") -> bytes:
         """
         Read a file off the controller
 
         :param filename: The filename to read
         :return: The file bytes
         """
-        url = f"{self.base_url}/fileservice/{filename}"
+        url = f"{self.base_url}/fileservice/{directory}/{filename}"
         res = self._session.get(url, auth=self.auth)
         if not res.ok:
             raise Exception(f"File not found {filename}")
@@ -528,14 +528,14 @@ class RWS:
         finally:
             res.close()
 
-    def read_file_str(self, filename: str) -> str:
+    def read_file_str(self, filename: str, directory: str = "") -> str:
         """
         Read a file off the controller as a string
 
         :param filename: The filename to read
         :return: The file contents as a string
         """
-        b = self.read_file(filename)
+        b = self.read_file(filename, directory)
         return b.decode("utf-8")
 
     def upload_file(self, filename: str, contents: bytes):
