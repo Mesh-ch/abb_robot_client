@@ -1,4 +1,3 @@
-
 from abb_robot_client import RWS, RWS2, RWSMock
 from abb_robot_client.rws_interface import RWSLike
 import abb_robot_client.rws as rws1_mod
@@ -31,9 +30,16 @@ COMMON_METHODS = [
     # RAPID variables
     "get_rapid_variable",
     "get_rapid_variable_num",
+    # "get_rapid_variable_num_array", # not yet implemented in RWS2
+    # "get_rapid_variable_jointtarget_array",  # not yet implemented in RWS2
+    # "set_rapid_variable_jointtarget_array",  # not yet implemented in RWS2
     "set_rapid_variable",
     "set_rapid_variable_num",
+    # "set_rapid_variable_num_array",  # not yet implemented in RWS2
     # Files
+    # "read_ipc_message",  # not yet implemented in RWS2
+    # "send_ipc_message",  # not yet implemented in RWS2
+    # "get_ipc_queue",  # not yet implemented in RWS2
     "get_ramdisk_path",
     "read_file",
     "read_file_str",
@@ -42,7 +48,7 @@ COMMON_METHODS = [
     # Misc
     "read_event_log",
     "get_mechunits",
-    # Geometry
+    # Motion
     "get_jointtarget",
     "get_robtarget",
 ]
@@ -64,7 +70,7 @@ def test_mock_conforms_to_protocol():
 def test_taskstate_type_field_naming():
     # RWS1 TaskState uses `type_` (to avoid keyword); RWS2 uses `type`
     assert hasattr(rws1_mod.TaskState, "type_"), "RWS.TaskState should expose type_"
-    assert hasattr(rws2_mod.TaskState, "type"), "RWS2.TaskState should expose type"
+    assert "type" in rws2_mod.TaskState.model_fields, "RWS2.TaskState should expose type"
 
 
 def test_mock_geometry_return_types():

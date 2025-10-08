@@ -171,6 +171,14 @@ class RWSMock(RWSLike):
     def get_rapid_variable_num(self, var: str, task: str = "T_ROB1") -> float:
         return float(self.get_rapid_variable(var, task))
 
+    def get_rapid_variable_num_array(self, var: str, task: str = "T_ROB1") -> np.ndarray:
+        val_str = self.get_rapid_variable(var, task)
+        try:
+            # Assume comma-separated values
+            return np.array([float(v.strip()) for v in val_str.split(",")])
+        except ValueError:
+            return np.array([])
+
     def set_rapid_variable(self, var: str, value: str | int | float, task: str = "T_ROB1") -> None:
         key = self._qualify_var(var, task)
         self._rapid[key] = str(value)
