@@ -65,7 +65,9 @@ class RWSMock(RWSLike):
         self._controller_state = "motoroff"
         self._opmode = "AUTO"
         self._tasks: Dict[str, _TaskState] = {
-            "T_ROB1": _TaskState("T_ROB1", type_val="NORMAL", taskstate="ready", excstate="stopped", active=True, motiontask=True)
+            "T_ROB1": _TaskState(
+                "T_ROB1", type_val="NORMAL", taskstate="ready", excstate="stopped", active=True, motiontask=True
+            )
         }
         # IO state
         self._dio: Dict[str, int] = {
@@ -99,7 +101,7 @@ class RWSMock(RWSLike):
         pass
 
     def get_execution_state(self) -> RAPIDExecutionStateLike:
-        return _ExecState(ctrlexecstate="init", cycle="forever")
+        return _ExecState(ctrlexecstate="running", cycle="forever")
 
     def get_controller_state(self) -> str:
         return self._controller_state
