@@ -15,7 +15,6 @@
 import socket
 import select
 from ._egm_protobuf import egm_pb2
-import traceback
 import numpy as np
 import errno
 from typing import Tuple, NamedTuple, Any

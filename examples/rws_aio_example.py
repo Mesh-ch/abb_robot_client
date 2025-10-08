@@ -5,7 +5,6 @@ from contextlib import suppress
 from abb_robot_client.rws_aio import RWS_AIO, SubscriptionResourceRequest, SubscriptionResourceType, \
     SubscriptionResourcePriority
 
-import time
 import asyncio
 
 async def main():

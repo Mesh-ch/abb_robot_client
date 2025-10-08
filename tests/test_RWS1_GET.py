@@ -1,9 +1,11 @@
 import pytest
 from abb_robot_client.rws import RWS, EventLogEntry, JointTarget, RAPIDExecutionState, RobTarget
 
+
 @pytest.fixture(scope="module")
 def client():
     return RWS()
+
 
 ## Test GET methods
 def test_get_tasks(client):
@@ -11,84 +13,108 @@ def test_get_tasks(client):
     assert isinstance(tasks, dict)
     assert "T_ROB1" in tasks
 
+
 def test_get_jointtargets(client):
     jointtargets = client.get_jointtarget()
     assert isinstance(jointtargets, JointTarget)
-    
+
+
 def test_get_execution_state(client):
     state = client.get_execution_state()
     assert isinstance(state, RAPIDExecutionState)
 
+
 def test_get_ramdisk_paths(client):
     paths = client.get_ramdisk_path()
-    assert isinstance(paths,str)
-    
+    assert isinstance(paths, str)
+
+
 def test_get_controller_state(client):
     state = client.get_controller_state()
-    assert state in ['init','motoron', 'motoroff', 'guardstop', 'emergencystop', 'emergencystopreset', 'sysfail'], f"Unexpected controller state: {state}"
+    assert state in ["init", "motoron", "motoroff", "guardstop", "emergencystop", "emergencystopreset", "sysfail"], (
+        f"Unexpected controller state: {state}"
+    )
+
 
 def test_get_operation_mode(client):
     mode = client.get_operation_mode()
-    assert mode in ['AUTO', 'MAN', 'MANFS'], f"Unexpected operation mode: {mode}"
-    
+    assert mode in ["AUTO", "MAN", "MANFS"], f"Unexpected operation mode: {mode}"
+
+
 def test_get_digital_io(client):
-    signal_value = client.get_digital_io("motion_program_error")
+    mode = client.get_operation_mode()
+    if mode != "AUTO":
+        correct_value = 0
+    else:
+        correct_value = 1
+    signal_value = client.get_digital_io("AUTO1")
     assert isinstance(signal_value, int)
-    assert signal_value == 0, {"Expected 'motion_program_error' signal to be 0 (False)"}
-    
+    assert signal_value == correct_value, {f"Expected 'AUTO1' signal to be {correct_value}"}
+
+
 def test_get_analog_io(client):
     signal_value = client.get_analog_io("motion_program_preempt")
     assert isinstance(signal_value, float)
-    
+
+
 def test_get_rapid_variable(client):
     var_value = client.get_rapid_variable("MOTION_PROGRAM_CMD_MOVEL", "T_ROB1")
     assert int(var_value) == 3, f"Unexpected RAPID Variable 'MOTION_PROGRAM_CMD_MOVEL' in 'T_ROB1': {var_value}"
 
+
 def test_get_rapid_variable_num(client):
     var_value = client.get_rapid_variable_num("MOTION_PROGRAM_CMD_MOVEL", "T_ROB1")
     assert var_value == 3, f"Unexpected RAPID Variable 'MOTION_PROGRAM_CMD_MOVEL' in 'T_ROB1': {var_value}"
-    
+
+
 def test_read_file(client):
-    file_contents = client.read_file("motion_program_exec.mod")
+    file_contents = client.read_file("user.sys", "$HOME")
     # assert isinstance(file_contents, dict)  # Assuming the API returns JSON content
     assert isinstance(file_contents, bytes), f"Unexpected file content type: {type(file_contents)}"
-    assert file_contents.startswith(b"MODULE motion_program_exec"), f"Unexpected file content: {file_contents}"
+    assert file_contents.startswith(b"\r\nMODULE user (SYSMODULE)"), f"Unexpected file content: {file_contents}"
+
 
 def test_read_event_log(client):
     elog = client.read_event_log()
     assert isinstance(elog[0], EventLogEntry), f"Unexpected event log entry type: {type(elog[0])}"
+
 
 def test_get_robtarget(client):
     robtarget = client.get_robtarget()
     assert isinstance(robtarget, RobTarget), f"Unexpected robtarget type: {type(robtarget)}"
     print(robtarget)
 
+
 def test_get_speedratio(client):
     speedratio = client.get_speedratio()
-    assert 0<=speedratio<=100
-    
-    
+    assert 0 <= speedratio <= 100
+
+
 # def test_get_ipc_queue(client):
 #     messages = client.get_ipc_queue("testq")
 #     assert isinstance(messages, dict)
 #     assert "messages" in messages
 #     assert isinstance(messages["messages"], list)
-    
+
 # def test_ipc_message(client):
 #     messages = client.read_ipc_message("MY_QUEUE", timeout=5)
 #     assert isinstance(messages, list)
 #     for msg in messages:
 #         print("IPC Message:", msg)
-        
+
+
 def test_get_mechunits(client):
     mechunits = client.get_mechunits()
     assert isinstance(mechunits, list)
     assert "ROB_1" in mechunits
-    
+
+
 def test_is_mastered(client):
     mastered = client.is_mastered()
     assert isinstance(mastered, bool)
     print(f"Mastership: {mastered}")
+
+
 if __name__ == "__main__":
     rws = RWS()
     #### GET REQUESTS ####

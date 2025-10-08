@@ -1,6 +1,6 @@
 import pytest
 import time
-from abb_robot_client.rws2 import RWS2, EventLogEntry, JointTarget, RAPIDExecutionState, RobTarget
+from abb_robot_client.rws2 import RWS2
 
 @pytest.fixture(scope="module")
 def client():
