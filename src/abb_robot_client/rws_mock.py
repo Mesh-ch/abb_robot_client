@@ -61,12 +61,13 @@ class RWSMock(RWSLike):
     """
 
     def __init__(self) -> None:
+        self._exec_state = "stopped"
         self._speedratio = 100
         self._controller_state = "motoroff"
         self._opmode = "AUTO"
         self._tasks: Dict[str, _TaskState] = {
             "T_ROB1": _TaskState(
-                "T_ROB1", type_val="NORMAL", taskstate="ready", excstate="stopped", active=True, motiontask=True
+                "T_ROB1", type_val="NORMAL", taskstate="ready", excstate=self._exec_state, active=True, motiontask=True
             )
         }
         # IO state
@@ -92,16 +93,18 @@ class RWSMock(RWSLike):
     # Execution / state
     def start(self, cycle: str = "asis", tasks: Optional[List[str]] = None) -> None:  # noqa: D401
         # No-op; change execution state to simulate run
-        pass
+        if self._controller_state != "motoron":
+            raise RuntimeError("Cannot start execution: controller is not in 'motoron' state")
+        self._exec_state = "running"
 
     def stop(self) -> None:
-        pass
+        self._exec_state = "stopped"
 
     def resetpp(self) -> None:
         pass
 
     def get_execution_state(self) -> RAPIDExecutionStateLike:
-        return _ExecState(ctrlexecstate="running", cycle="forever")
+        return _ExecState(ctrlexecstate=self._exec_state, cycle="forever")
 
     def get_controller_state(self) -> str:
         return self._controller_state
@@ -130,7 +133,7 @@ class RWSMock(RWSLike):
         self._speedratio = sr
 
     def is_mastered(self) -> bool:
-        return True
+        return False
 
     # Tasks
     def get_tasks(self) -> Dict[str, TaskStateLike]:
