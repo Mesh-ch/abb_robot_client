@@ -228,7 +228,7 @@ class RWS2:
             "stopatbp": "disabled",
             "alltaskbytsp": "true",
         }
-        res = self._do_post("rw/rapid/execution/start?mastership=implicit", payload)
+        _res = self._do_post("rw/rapid/execution/start?mastership=implicit", payload)
 
     def activate_task(self, task: str):
         """
@@ -251,13 +251,13 @@ class RWS2:
         Stop RAPID execution of normal tasks
         """
         payload = {"stopmode": "stop"}
-        res = self._do_post("rw/rapid/execution/stop?mastership=implicit", payload)
+        _res = self._do_post("rw/rapid/execution/stop?mastership=implicit", payload)
 
     def resetpp(self):
         """
         Reset RAPID program pointer to main in normal tasks
         """
-        res = self._do_post("rw/rapid/execution/resetpp?mastership=implicit")
+        _res = self._do_post("rw/rapid/execution/resetpp?mastership=implicit")
 
     def get_ramdisk_path(self) -> str:
         """
@@ -295,7 +295,7 @@ class RWS2:
     def set_controller_state(self, ctrl_state):
         """Possible ctrl-states to set are `motoroff` or `motoron`"""
         payload = {"ctrl-state": ctrl_state}
-        res = self._do_post("rw/panel/ctrl-state?mastership=implicit", payload)
+        _res = self._do_post("rw/panel/ctrl-state?mastership=implicit", payload)
 
     def set_motors_on(self):
         """
@@ -366,7 +366,7 @@ class RWS2:
             url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
         else:
             url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
-        res = self._do_post(url, payload)
+        _res = self._do_post(url, payload)
 
     def get_analog_io(self, signal: str, network: str = "", unit: str = "") -> float:
         """
@@ -390,7 +390,7 @@ class RWS2:
         :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
         """
         payload = {"mode": "value", "lvalue": value}
-        res = self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit", payload)
+        _res = self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit", payload)
 
     # def get_rapid_variables(self, task: str="T_ROB1") -> List[str]:
     #     """
@@ -441,7 +441,7 @@ class RWS2:
         else:
             var1 = var
         self.request_mastership()
-        res = self._do_post(f"rw/rapid/symbol/RAPID/{var1}/data?mastership=implicit", payload)
+        _res = self._do_post(f"rw/rapid/symbol/RAPID/{var1}/data?mastership=implicit", payload)
         self.release_mastership()
 
     def read_file(self, filename: str, directory: str = "") -> bytes:
@@ -530,7 +530,7 @@ class RWS2:
                 "actions": log_entry["actions"],
                 "args": [],
             }
-            nargs = int(log_entry["argc"])
+            _nargs = int(log_entry["argc"])
             if "argv" in log_entry:
                 for arg in log_entry["argv"]:
                     entry_dict["args"].append(arg["value"])
@@ -760,7 +760,7 @@ class RWS2:
 
         :return: The current speed ratio between 0% - 100%
         """
-        res_json = self._do_get(f"rw/panel/speedratio")
+        res_json = self._do_get("rw/panel/speedratio")
         state = res_json["state"][0]
         if not state["_type"] == "pnl-speedratio":
             raise Exception("Invalid speedratio type")
@@ -915,14 +915,14 @@ class RWS2:
         Request mastership for the client
 
         """
-        response = self._session.post(f"{self.base_url}/rw/mastership/request", headers=self.header, auth=self.auth)
+        _response = self._session.post(f"{self.base_url}/rw/mastership/request", headers=self.header, auth=self.auth)
 
     def release_mastership(self) -> None:
         """
         Release mastership for the client
         """
 
-        response = self._session.post(f"{self.base_url}/rw/mastership/release", headers=self.header, auth=self.auth)
+        # response = self._session.post(f"{self.base_url}/rw/mastership/release", headers=self.header, auth=self.auth)
         # if response.status_code == 403:
         #     logger.warning("Mastership request denied (403). Trying to release and re-request.")
         #     self._session.post(f"{self.base_url}/rw/mastership/release", headers=header, auth=self.auth)
@@ -936,16 +936,8 @@ class RWS2:
 
 
 def test_RWS2():
-    client = RWS2()
-    # tasks = client.get_tasks()
-    # jointtargets = client.get_jointtarget()
-    # client.resetpp()
-    # res = client.get_execution_state()
-
-    # print("Execution State:", res)
+    _client = RWS2()
 
 
 if __name__ == "__main__":
-    # test_rrc_robot_initialization()
-    # test_RW7_rws()
     test_RWS2()

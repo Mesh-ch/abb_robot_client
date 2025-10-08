@@ -1,4 +1,3 @@
-import inspect
 
 from abb_robot_client import RWS, RWS2, RWSMock
 from abb_robot_client.rws_interface import RWSLike

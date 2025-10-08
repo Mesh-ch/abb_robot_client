@@ -1,6 +1,7 @@
 """
 A textualize-based interactive CLI to run test functions from test_RWS2_POST.py.
 """
+
 import asyncio
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Button, Static, ListView, ListItem
@@ -8,25 +9,25 @@ from textual.containers import Container
 import importlib
 import inspect
 
+from abb_robot_client.rws2 import RWS2
 
 # Import the test module and get test functions
 test_module = importlib.import_module("test_RWS2_POST")
 
-from abb_robot_client.rws2 import RWS2
 
 def get_test_functions():
     return [
-        (name, func)
-        for name, func in inspect.getmembers(test_module, inspect.isfunction)
-        if name.startswith("test_")
+        (name, func) for name, func in inspect.getmembers(test_module, inspect.isfunction) if name.startswith("test_")
     ]
+
 
 class TestResult(Static):
     pass
 
+
 class TestRWS2POST(App):
     CSS_PATH = None
-    BINDINGS = [ ("q", "quit", "Quit") ]
+    BINDINGS = [("q", "quit", "Quit")]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -53,6 +54,7 @@ class TestRWS2POST(App):
             result_widget.update(f"[green]Test {test_name} passed![/green]")
         except Exception as e:
             result_widget.update(f"[red]Test {test_name} failed: {e}[/red]")
+
 
 if __name__ == "__main__":
     app = TestRWS2POST()

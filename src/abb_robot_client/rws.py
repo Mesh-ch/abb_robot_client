@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import struct
 import numpy as np
-import io
 import requests
 import datetime
 import re
@@ -302,7 +300,7 @@ class RWS:
 
         rob_tasks = self.get_tasks()
         for t in tasks:
-            if not t in rob_tasks:
+            if t not in rob_tasks:
                 raise Exception(f"Cannot start unknown task {t}")
 
         for rob_task in rob_tasks.values():
@@ -323,7 +321,7 @@ class RWS:
             "stopatbp": "disabled",
             "alltaskbytsp": "true",
         }
-        res = self._do_post("rw/rapid/execution?action=start", payload)
+        _res = self._do_post("rw/rapid/execution?action=start", payload)
 
     def activate_task(self, task: str):
         """
@@ -348,13 +346,13 @@ class RWS:
         Stop RAPID execution of normal tasks
         """
         payload = {"stopmode": "stop"}
-        res = self._do_post("rw/rapid/execution?action=stop", payload)
+        _res = self._do_post("rw/rapid/execution?action=stop", payload)
 
     def resetpp(self):
         """
         Reset RAPID program pointer to main in normal tasks
         """
-        res = self._do_post("rw/rapid/execution?action=resetpp")
+        _res = self._do_post("rw/rapid/execution?action=resetpp")
 
     def get_ramdisk_path(self) -> str:
         """
@@ -393,7 +391,7 @@ class RWS:
 
     def set_controller_state(self, ctrl_state):
         payload = {"ctrl-state": ctrl_state}
-        res = self._do_post("rw/panel/ctrlstate?action=setctrlstate", payload)
+        _res = self._do_post("rw/panel/ctrlstate?action=setctrlstate", payload)
 
     def get_operation_mode(self) -> str:
         """
@@ -433,7 +431,7 @@ class RWS:
         """
         lvalue = "1" if bool(value) else "0"
         payload = {"lvalue": lvalue}
-        res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
+        _res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
 
     def get_analog_io(self, signal: str, network: str = "Local", unit: str = "DRV_1") -> float:
         """
@@ -458,7 +456,7 @@ class RWS:
         :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
         """
         payload = {"mode": "value", "lvalue": value}
-        res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
+        _res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
 
     def get_rapid_variables(self, task: str = "T_ROB1") -> List[str]:
         """
@@ -479,7 +477,7 @@ class RWS:
             "posl": "0",
             "posc": "0",
         }
-        res_json = self._do_post(f"rw/rapid/symbols?action=search-symbols", payload)
+        res_json = self._do_post("rw/rapid/symbols?action=search-symbols", payload)
         state = res_json["_embedded"]["_state"]
         return state
 
@@ -512,7 +510,7 @@ class RWS:
             var1 = f"{task}/{var}"
         else:
             var1 = var
-        res = self._do_post("rw/rapid/symbol/data/RAPID/" + var1 + "?action=set", payload)
+        _res = self._do_post("rw/rapid/symbol/data/RAPID/" + var1 + "?action=set", payload)
 
     def read_file(self, filename: str) -> bytes:
         """
@@ -596,7 +594,7 @@ class RWS:
             causes = s["causes"]
             actions = s["actions"]
             args = []
-            nargs = int(s["argc"])
+            _nargs = int(s["argc"])
             if "argv" in s:
                 for arg in s["argv"]:
                     args.append(arg["value"])
@@ -837,7 +835,7 @@ class RWS:
 
         :return: The current speed ratio between 0% - 100%
         """
-        res_json = self._do_get(f"rw/panel/speedratio")
+        res_json = self._do_get("rw/panel/speedratio")
         state = res_json["_embedded"]["_state"][0]
         if not state["_type"] == "pnl-speedratio":
             raise Exception("Invalid speedratio type")
@@ -850,7 +848,7 @@ class RWS:
         :param speedratio: The new speed ratio between 0% - 100%
         """
         payload = {"speed-ratio": str(speedratio)}
-        self._do_post(f"rw/panel/speedratio?action=setspeedratio", payload)
+        self._do_post("rw/panel/speedratio?action=setspeedratio", payload)
 
     def set_motors_on(self):
         """Set the robot motors on"""
@@ -893,7 +891,7 @@ class RWS:
             "dipc-msgtype": str(msgtype),
             "dipc-data": data,
         }
-        res = self._do_post("rw/dipc/" + target_queue + "?action=dipc-send", payload)
+        _res = self._do_post("rw/dipc/" + target_queue + "?action=dipc-send", payload)
 
     def get_ipc_queue(self, queue_name: str) -> Any:
         """
@@ -1078,7 +1076,7 @@ class RWS:
             elif r.resource_type == SubscriptionResourceType.IpcQueue:
                 payload[f"{payload_ind}"] = f"/rw/dipc/{r.param}"
             elif r.resource_type == SubscriptionResourceType.Elog:
-                payload[f"{payload_ind}"] = f"/rw/elog/0"
+                payload[f"{payload_ind}"] = "/rw/elog/0"
             elif r.resource_type == SubscriptionResourceType.Signal:
                 if isinstance(r.param, str):
                     signal = r.param
@@ -1098,7 +1096,7 @@ class RWS:
         url = "/".join([self.base_url, "subscription"]) + "?json=1"
         res1 = self._session.post(url, data=payload, auth=self.auth)
         try:
-            res = self._process_response(res1)
+            _res = self._process_response(res1)
         finally:
             res1.close()
 
@@ -1116,7 +1114,7 @@ class RWS:
         return RWSSubscription(ws_url, header, handler)
 
     def logout(self):
-        res = self._do_get("logout")
+        _res = self._do_get("logout")
 
     def close(self):
         try:
