@@ -1,6 +1,6 @@
 [project]
 name = "abb-robot-client"
-version = "0.5.0"
+version = "0.5.1"
 description = "Python client library to access ABB robots using RWS and EGM"
 readme = "README.md"
 authors = [
@@ -33,7 +33,13 @@ dev = [
     repository = "https://github.com/johnwason/abb_robot_client"
     documentation = "https://github.com/johnwason/abb_robot_client#documentation"
 
+[project.optional-dependencies]
+    aio = ["httpx", "websockets"]
 [tool.pytest.ini_options]
 testpaths = [
     "tests"
 ]
+
+# Linting and Formatting
+[tool.ruff]
+line-length = 120
