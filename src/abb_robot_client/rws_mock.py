@@ -236,10 +236,12 @@ class RWSMock(RWSLike):
         return ["ROB_1"]
 
     # Geometry helpers
-    def get_jointtarget(self) -> JointTarget:
+    def get_jointtarget(self, mechunit: str = "ROB_1") -> JointTarget:
         return JointTarget(robax=np.zeros(6), extax=np.zeros(6))
 
-    def get_robtarget(self) -> RobTarget:
+    def get_robtarget(
+        self, mechunit: str = "ROB_1", tool: str = "tool0", wobj: str = "wobj0", coordinate: str = "Base"
+    ) -> RobTarget:
         return RobTarget(
             trans=np.zeros(3),
             rot=np.array([1.0, 0.0, 0.0, 0.0]),
