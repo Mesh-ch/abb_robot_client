@@ -186,6 +186,10 @@ class SubscriptionResourceType(IntEnum):
     """Subscribe to Event Log resource"""
     Signal = 7
     """Subscribe to signal resource"""
+    SpeedRatio = 8
+    """Subscribe to speed ratio resource"""
+    JointTarget = 9
+    """Subscribe to joint target resource"""
 
 
 class SubscriptionResourcePriority(IntEnum):
@@ -1087,6 +1091,15 @@ class RWS:
                     network = r.param.get("network", "Local")
                     unit = r.param.get("unit", "DRV_1")
                 payload[f"{payload_ind}"] = f"/rw/iosystem/signals/{network}/{unit}/{signal};state"
+            elif r.resource_type == SubscriptionResourceType.SpeedRatio:
+                payload[f"{payload_ind}"] = "/rw/panel/speedratio;speedratio"
+            # elif r.resource_type == SubscriptionResourceType.JointTarget:
+            #     mechunit = "ROB_1"
+            #     if isinstance(r.param, str):
+            #         mechunit = r.param
+            #     elif isinstance(r.param, dict):
+            #         mechunit = r.param.get("mechunit", "ROB_1")
+            #     payload[f"{payload_ind}"] = f"/rw/motionsystem/mechunits/{mechunit}/jointtarget"
             else:
                 raise Exception("Invalid resource type")
             payload[f"{payload_ind}-p"] = f"{r.priority.value}"
@@ -1163,6 +1176,9 @@ class RWSSubscription:
         self._ipc_re = re.compile(
             r'<a\s+href="/rw/dipc/([^"]*)".*<span\s+class="dipc-data">([^<]+)<.*<span\s+class="dipc-userdef">([^<]+)<'
         )
+        self._speedratio_re = re.compile(
+            r'<a\s+href="/rw/panel/speedratio;speedratio"\s+rel="self"/?>.*<span\s+class="speedratio">([^<]+)<'
+        )
 
         self.ws = websocket.WebSocketApp(
             ws_url,
@@ -1215,6 +1231,10 @@ class RWSSubscription:
             m = self._ipc_re.search(message)
             if m is not None:
                 self.handler(IpcMessage(queue_name=m.group(1), data=m.group(2), userdef=m.group(3), msgtype="", cmd=""))
+        elif 'li class="pnl-speedratio-ev"' in message:
+            m = self._speedratio_re.search(message)
+            if m is not None:
+                self.handler(int(m.group(1)))
 
     def _on_error(self, ws, error):
         self.handler(SubscriptionException(error))
