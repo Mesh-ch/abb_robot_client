@@ -367,6 +367,22 @@ class RWS2:
         else:
             url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
         _res = self._do_post(url, payload)
+        
+    def pulse_digital_io(self, signal: str, duration: int, network: str = "", unit: str = ""):
+        """
+        Pulse a digital IO signal for a specified duration. The signal will be set to ON for the duration and then set back to OFF.
+
+        :param signal: The name of the signal
+        :param duration: Duration of the pulse in milliseconds
+        :param network: The network the signal is on. The default `Local` will work for most signals.
+        :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
+        """
+        payload = {"lvalue": "1", "mode": "pulse", "Pulses": "1", "ActivePulse": duration}
+        if network and unit:
+            url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
+        else:
+            url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
+        _res = self._do_post(url, payload)
 
     def get_analog_io(self, signal: str, network: str = "", unit: str = "") -> float:
         """

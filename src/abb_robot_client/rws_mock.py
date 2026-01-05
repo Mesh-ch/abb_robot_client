@@ -154,6 +154,11 @@ class RWSMock(RWSLike):
     def set_digital_io(self, signal: str, value: bool | int, network: str = "", unit: str = "") -> None:
         self._dio[signal] = 1 if bool(value) else 0
 
+    def pulse_digital_io(self, signal: str, duration: int, network: str = "", unit: str = ""):
+        self._dio[signal] = 1
+        # In a real implementation you'd wait `duration` ms, but for a mock we just reset immediately
+        self._dio[signal] = 0
+        
     def get_analog_io(self, signal: str, network: str = "", unit: str = "") -> float:
         return float(self._aio.get(signal, 0.0))
 
