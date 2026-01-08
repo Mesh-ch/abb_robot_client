@@ -408,6 +408,30 @@ class RWS2:
         payload = {"mode": "value", "lvalue": value}
         _res = self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit", payload)
 
+    def get_group_io(self, signal: str, network: str = "", unit: str = "") -> int:
+        """
+        This is the same as get_digital_io(). Get the value of a group IO signal.
+        """
+        return self.get_digital_io(signal, network, unit)
+
+    def set_group_io(self, signal: str, value: int, network: str = "", unit: str = ""):
+        """
+        Set the value of an group IO signal.
+        WARNNING: This will just write an int to the group, make sure to convert the value to the correct bit pattern first.
+
+        :param value: The value of the signal.
+        :param signal: The name of the signal
+        :param network: The network the signal is on. The default `Local` will work for most signals.
+        :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
+        """
+        lvalue = value
+        payload = {"lvalue": lvalue}
+        if network and unit:
+            url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
+        else:
+            url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
+        _res = self._do_post(url, payload)    
+    
     # def get_rapid_variables(self, task: str="T_ROB1") -> List[str]:
     #     """
     #     Get a list of the persistent variables in a task
