@@ -164,7 +164,13 @@ class RWSMock(RWSLike):
 
     def set_analog_io(self, signal: str, value: int | float, network: str = "", unit: str = "") -> None:
         self._aio[signal] = float(value)
+    
+    def get_group_io(self, signal: str, network: str = "", unit: str = "") -> int:
+        return int(self._dio.get(signal, 0))
 
+    def set_group_io(self, signal: str, value: bool | int, network: str = "", unit: str = "") -> None:
+        self._dio[signal] = value
+        
     # RAPID variables
     def _qualify_var(self, var: str, task: str) -> str:
         return f"{task}/{var}" if task else var
