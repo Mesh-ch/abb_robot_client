@@ -268,6 +268,15 @@ class RWS2:
         res_json = self._do_get("ctrl/$RAMDISK")
         return res_json["state"][0]["value"]
 
+    def get_home_path(self) -> str:
+        """
+        Get the path of the HOME variable on the controller
+
+        :return: The HOME path
+        """
+        res_json = self._do_get("ctrl/$HOME")
+        return res_json["_embedded"]["_state"][0]["_value"]
+
     def get_execution_state(self) -> RAPIDExecutionState:
         """
         Get the RAPID execution state
@@ -367,7 +376,7 @@ class RWS2:
         else:
             url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
         _res = self._do_post(url, payload)
-        
+
     def pulse_digital_io(self, signal: str, duration: int, network: str = "", unit: str = ""):
         """
         Pulse a digital IO signal for a specified duration. The signal will be set to ON for the duration and then set back to OFF.
@@ -430,8 +439,8 @@ class RWS2:
             url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
         else:
             url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
-        _res = self._do_post(url, payload)    
-    
+        _res = self._do_post(url, payload)
+
     # def get_rapid_variables(self, task: str="T_ROB1") -> List[str]:
     #     """
     #     Get a list of the persistent variables in a task
