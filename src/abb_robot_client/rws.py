@@ -363,6 +363,15 @@ class RWS:
         res_json = self._do_get("ctrl/$RAMDISK")
         return res_json["_embedded"]["_state"][0]["_value"]
 
+    def get_home_path(self) -> str:
+        """
+        Get the path of the HOME variable on the controller
+
+        :return: The HOME path
+        """
+        res_json = self._do_get("ctrl/$HOME")
+        return res_json["_embedded"]["_state"][0]["_value"]
+
     def get_execution_state(self) -> RAPIDExecutionState:
         """
         Get the RAPID execution state
@@ -432,7 +441,7 @@ class RWS:
         lvalue = "1" if bool(value) else "0"
         payload = {"lvalue": lvalue}
         _res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
-        
+
     def pulse_digital_io(self, signal: str, duration: int, network: str = "", unit: str = ""):
         """
         Pulse a digital IO signal for a specified duration. The signal will be set to ON for the duration and then set back to OFF.
@@ -444,7 +453,7 @@ class RWS:
         """
         payload = {"lvalue": "1", "mode": "pulse", "Pulses": "1", "ActivePulse": duration}
         _res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
-        
+
     def get_analog_io(self, signal: str, network: str = "Local", unit: str = "DRV_1") -> float:
         """
         Get the value of an analog IO signal.
@@ -488,7 +497,7 @@ class RWS:
         """
         lvalue = str(value)
         payload = {"lvalue": lvalue}
-        _res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)   
+        _res = self._do_post("rw/iosystem/signals/" + network + "/" + unit + "/" + signal + "?action=set", payload)
 
     def get_rapid_variables(self, task: str = "T_ROB1") -> List[str]:
         """
