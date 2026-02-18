@@ -158,19 +158,19 @@ class RWSMock(RWSLike):
         self._dio[signal] = 1
         # In a real implementation you'd wait `duration` ms, but for a mock we just reset immediately
         self._dio[signal] = 0
-        
+
     def get_analog_io(self, signal: str, network: str = "", unit: str = "") -> float:
         return float(self._aio.get(signal, 0.0))
 
     def set_analog_io(self, signal: str, value: int | float, network: str = "", unit: str = "") -> None:
         self._aio[signal] = float(value)
-    
+
     def get_group_io(self, signal: str, network: str = "", unit: str = "") -> int:
         return int(self._dio.get(signal, 0))
 
     def set_group_io(self, signal: str, value: bool | int, network: str = "", unit: str = "") -> None:
         self._dio[signal] = value
-        
+
     # RAPID variables
     def _qualify_var(self, var: str, task: str) -> str:
         return f"{task}/{var}" if task else var
@@ -200,6 +200,14 @@ class RWSMock(RWSLike):
     # Files
     def get_ramdisk_path(self) -> str:
         return "/TEMP/"
+
+    def get_home_path(self) -> str:
+        """
+        Get the path of the HOME variable on the controller
+
+        :return: The HOME path
+        """
+        return "ctrl/$HOME"
 
     def _resolve_path(self, filename: str, directory: Optional[str]) -> str:
         if directory:
