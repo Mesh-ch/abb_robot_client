@@ -90,6 +90,9 @@ class RWSMock(RWSLike):
             "/TEMP/motion_program_exec.mod": b"MODULE motion_program_exec\nENDMODULE\n",
         }
 
+    def ping(self) -> bool:
+        return True
+    
     # Execution / state
     def start(self, cycle: str = "asis", tasks: Optional[List[str]] = None) -> None:  # noqa: D401
         # No-op; change execution state to simulate run

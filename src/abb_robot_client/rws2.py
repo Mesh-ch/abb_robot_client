@@ -197,6 +197,23 @@ class RWS2:
 
         return response
 
+    def ping(self, timeout: float = 1.0) -> bool:
+        """Return True if the controller root endpoint responds with HTTP 200."""
+        try:
+            res = self._session.get(
+                f"{self.base_url}/",
+                auth=self.auth,
+                headers={"accept": "application/hal+json;v=2.0"},
+                timeout=timeout,
+                verify=self._session.verify,
+            )
+            try:
+                return res.status_code == 200
+            finally:
+                res.close()
+        except requests.RequestException:
+            return False
+        
     def start(self, cycle: Optional[str] = "asis", tasks: Optional[list[str]] = ["T_ROB1"]):  # TODO
         """
         Start one or more RAPID tasks

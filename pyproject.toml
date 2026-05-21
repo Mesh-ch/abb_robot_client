@@ -1,6 +1,6 @@
 [project]
 name = "abb-robot-client"
-version = "0.5.1"
+version = "0.5.2"
 description = "Python client library to access ABB robots using RWS and EGM"
 readme = "README.md"
 authors = [
