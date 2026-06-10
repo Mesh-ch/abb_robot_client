@@ -151,6 +151,19 @@ class RWS2:
         }
         self._session.verify = False
 
+    def _wait_for_mastership(self, timeout: float = 5.0, poll_interval: float = 0.05) -> bool:
+        """Poll controller mastership state until acquired or timeout."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                if self.is_mastered():
+                    return True
+            except Exception:
+                # Ignore transient read errors while controller updates mastership state.
+                pass
+            time.sleep(poll_interval)
+        return False
+
     def _do_get(self, relative_url: str, params=None):
         url = f"{self.base_url}/{relative_url}"
         try:
@@ -171,22 +184,56 @@ class RWS2:
         return response
 
     def _do_post(self, relative_url: str, data=None):
-        url = f"{self.base_url}/{relative_url}"
         headers = self.header.copy()
         headers["Content-Type"] = "application/x-www-form-urlencoded;v=2.0"
-        # TODO add response.e.code == -1073445859 to check for mastership error
+        needs_mastership = "mastership=implicit" in relative_url
+        post_relative_url = relative_url
+        post_url = f"{self.base_url}/{post_relative_url}"
+        response = None
+        max_attempts = 3 if needs_mastership else 1
         try:
-            response = self._session.post(
-                url, headers=headers, auth=self.auth, data=data if data is not None else "", verify=self._session.verify
-            )
-            response.raise_for_status()
-            return response.json() if response.content else None
+            for attempt in range(1, max_attempts + 1):
+                response = self._session.post(
+                    post_url,
+                    headers=headers,
+                    auth=self.auth,
+                    data=data if data is not None else "",
+                    verify=self._session.verify,
+                )
+                if response.status_code == 403 and needs_mastership and attempt < max_attempts:
+                    explicit_ok = self.request_mastership()
+                    if explicit_ok and self._wait_for_mastership(timeout=5.0):
+                        logger.warning(
+                            f"Implicit mastership failed, explicit request succeeded for '{post_relative_url}', retrying"
+                        )
+                    else:
+                        logger.warning(
+                            f"Implicit mastership failed and explicit mastership unavailable for '{post_relative_url}', retrying"
+                        )
+                    logger.warning(
+                        f"Mastership attempt {attempt}/{max_attempts} rejected with 403 for '{post_relative_url}', retrying"
+                    )
+                    self.release_mastership()
+                    time.sleep(0.1 * attempt)
+                    continue
+
+                response.raise_for_status()
+                return response.json() if response.content else None
+
+            # If we exhausted retries and still didn't return, raise a consistent error.
+            raise ABBException("Mastership required for this operation", 403)
         except requests.RequestException as e:
-            if response.status_code == 403:
-                logger.error("Mastership required for this operation")
+            if response is not None and response.status_code == 403:
+                response_excerpt = response.text[:500] if response.text else "<no-body>"
+                logger.error(
+                    f"Mastership required for this operation ({post_relative_url}) status=403 body={response_excerpt}"
+                )
                 raise ABBException("Mastership required for this operation", 403)
             print(f"Error occurred: {e}")
             return None
+        finally:
+            if needs_mastership:
+                self.release_mastership()
 
     def _do_post_raw(self, relative_url: str, data=None):
         url = f"{self.base_url}/{relative_url}"
@@ -358,10 +405,11 @@ class RWS2:
         :param unit: The device unit of the signal. If the device is <none> leave default value ''.
         :return: The value of the signal. Typically 1 for ON and 0 for OFF
         """
-        if network and unit:
-            res_json = self._do_get(f"rw/iosystem/signals/{network}/{unit}/{signal}")
-        else:  # TODO check for only network?
-            res_json = self._do_get(f"rw/iosystem/signals/{signal}")
+        if network:
+            path = f"rw/iosystem/signals/{network}/{unit or 'DRV_1'}/{signal}"
+        else:
+            path = f"rw/iosystem/signals/{signal}"
+        res_json = self._do_get(path)
         value = res_json["_embedded"]["resources"][0]["lvalue"]
         return value
 
@@ -388,11 +436,11 @@ class RWS2:
         """
         lvalue = "1" if bool(value) else "0"
         payload = {"lvalue": lvalue}
-        if network and unit:
-            url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
+        if network:
+            path = f"rw/iosystem/signals/{network}/{unit or 'DRV_1'}/{signal}"
         else:
-            url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
-        _res = self._do_post(url, payload)
+            path = f"rw/iosystem/signals/{signal}"
+        _res = self._do_post(f"{path}/set-value?mastership=implicit", payload)
 
     def pulse_digital_io(self, signal: str, duration: int, network: str = "", unit: str = ""):
         """
@@ -404,11 +452,11 @@ class RWS2:
         :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
         """
         payload = {"lvalue": "1", "mode": "pulse", "Pulses": "1", "ActivePulse": duration}
-        if network and unit:
-            url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
+        if network:
+            path = f"rw/iosystem/signals/{network}/{unit or 'DRV_1'}/{signal}"
         else:
-            url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
-        _res = self._do_post(url, payload)
+            path = f"rw/iosystem/signals/{signal}"
+        _res = self._do_post(f"{path}/set-value?mastership=implicit", payload)
 
     def get_analog_io(self, signal: str, network: str = "", unit: str = "") -> float:
         """
@@ -432,7 +480,11 @@ class RWS2:
         :param unit: The drive unit of the signal. The default `DRV_1` will work for most signals.
         """
         payload = {"mode": "value", "lvalue": value}
-        _res = self._do_post(f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit", payload)
+        if network:
+            path = f"rw/iosystem/signals/{network}/{unit or 'DRV_1'}/{signal}"
+        else:
+            path = f"rw/iosystem/signals/{signal}"
+        _res = self._do_post(f"{path}/set-value?mastership=implicit", payload)
 
     def get_group_io(self, signal: str, network: str = "", unit: str = "") -> int:
         """
@@ -452,10 +504,12 @@ class RWS2:
         """
         lvalue = value
         payload = {"lvalue": lvalue}
-        if network and unit:
-            url = f"rw/iosystem/signals/{network}/{unit}/{signal}/set-value?mastership=implicit"
+        if network:
+            path = f"rw/iosystem/signals/{network}/{unit or 'DRV_1'}/{signal}"
         else:
-            url = f"rw/iosystem/signals/{signal}/set-value?mastership=implicit"
+            path = f"rw/iosystem/signals/{signal}"
+        url = f"{path}/set-value?mastership=implicit"
+        logger.debug(f"set_group_io signal={signal} value={lvalue} url={url}")
         _res = self._do_post(url, payload)
 
     # def get_rapid_variables(self, task: str="T_ROB1") -> List[str]:
@@ -618,8 +672,15 @@ class RWS2:
         for s in resources:
             if "name" not in s:
                 continue  # skip non-task resources
+            if s.get("name") == "SC_CBC":
+                continue
             try:
-                o[s["name"]] = TaskState.model_validate(s)
+                task_data = dict(s)
+                if "active" in task_data and isinstance(task_data["active"], str):
+                    task_data["active"] = task_data["active"].strip().lower() in {"on", "true", "1"}
+                if "motiontask" in task_data and isinstance(task_data["motiontask"], str):
+                    task_data["motiontask"] = task_data["motiontask"].strip().lower() in {"on", "true", "1"}
+                o[s["name"]] = TaskState.model_validate(task_data)
             except Exception as e:
                 print(f"Failed to parse task: {s.get('name', '<unknown>')}, error: {e}")
         return o
@@ -976,29 +1037,45 @@ class RWS2:
     #     return state["status"] == "GRANTED"
 
     ################ new #####################
-    def request_mastership(self) -> None:
+    def request_mastership(self) -> bool:
         """
         Request mastership for the client
 
         """
-        _response = self._session.post(f"{self.base_url}/rw/mastership/request", headers=self.header, auth=self.auth)
+        _response = self._session.post(
+            f"{self.base_url}/rw/mastership/request",
+            headers=self.header,
+            auth=self.auth,
+            data="",
+            verify=self._session.verify,
+        )
+        try:
+            _response.raise_for_status()
+            return True
+        except requests.RequestException as e:
+            status = getattr(_response, "status_code", None)
+            # Some controllers reject explicit request endpoint; keep fallback non-fatal.
+            logger.debug(f"Explicit mastership request failed status={status}: {e}")
+            return False
+        finally:
+            _response.close()
 
     def release_mastership(self) -> None:
         """
         Release mastership for the client
         """
-
-        # response = self._session.post(f"{self.base_url}/rw/mastership/release", headers=self.header, auth=self.auth)
-        # if response.status_code == 403:
-        #     logger.warning("Mastership request denied (403). Trying to release and re-request.")
-        #     self._session.post(f"{self.base_url}/rw/mastership/release", headers=header, auth=self.auth)
-        #     response = self._session.post(f"{self.base_url}/rw/mastership/request", data=data, headers=header, auth=self.auth)
-        # if response.status_code == 204:
-        #     logger.success("Mastership request granted")
-
-        # else:
-        #     logger.error(f"Failed to request mastership, status code: {response.status_code}")
-        # return response
+        _response = self._session.post(
+            f"{self.base_url}/rw/mastership/release",
+            headers=self.header,
+            auth=self.auth,
+            verify=self._session.verify,
+        )
+        try:
+            _response.raise_for_status()
+        except requests.RequestException:
+            logger.debug("Failed to release mastership cleanly")
+        finally:
+            _response.close()
 
 
 def test_RWS2():
