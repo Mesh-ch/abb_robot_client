@@ -7,7 +7,7 @@ import numpy as np
 from .rws_interface import RWSLike, TaskStateLike, RAPIDExecutionStateLike, EventLogEntryLike
 
 # Reuse common geometry types from RWS 1.0
-from .rws import JointTarget, RobTarget
+from .rws import JointTarget, RobTarget, ToolData, WObjData
 
 
 @dataclass
@@ -199,6 +199,70 @@ class RWSMock(RWSLike):
 
     def set_rapid_variable_num(self, var: str, val: float, task: str = "T_ROB1") -> None:
         self.set_rapid_variable(var, str(val), task)
+
+    def _fmt_num(self, x: float) -> str:
+        s = format(float(x), ".6f").rstrip("0").rstrip(".")
+        return "0" if s in {"", "-0"} else s
+
+    def _fmt_arr(self, a: np.ndarray) -> str:
+        return ",".join(self._fmt_num(x) for x in np.asarray(a, dtype=np.float64).reshape(-1))
+
+    def _wobjdata_to_rws_value(self, val: WObjData) -> str:
+        return (
+            f"[{'TRUE' if val.robhold else 'FALSE'},{'TRUE' if val.ufprog else 'FALSE'},\"{val.ufmec}\","
+            f"[[{self._fmt_arr(val.uframe_trans)}],[{self._fmt_arr(val.uframe_rot)}]],"
+            f"[[{self._fmt_arr(val.oframe_trans)}],[{self._fmt_arr(val.oframe_rot)}]]]"
+        )
+
+    def _tooldata_to_rws_value(self, val: ToolData) -> str:
+        return (
+            f"[{'TRUE' if val.robhold else 'FALSE'},"
+            f"[[{self._fmt_arr(val.tframe_trans)}],[{self._fmt_arr(val.tframe_rot)}]],"
+            f"{val.tload}]"
+        )
+
+    def get_rapid_variable_wobj(self, var: str, task: str = "T_ROB1") -> WObjData:
+        key = self._qualify_var(var, task)
+        if key not in self._rapid_wobj:
+            self.set_rapid_variable_wobj(
+                var,
+                WObjData(
+                    robhold=self._default_wobj.robhold,
+                    ufprog=self._default_wobj.ufprog,
+                    ufmec=self._default_wobj.ufmec,
+                    uframe_trans=np.array(self._default_wobj.uframe_trans, dtype=np.float64),
+                    uframe_rot=np.array(self._default_wobj.uframe_rot, dtype=np.float64),
+                    oframe_trans=np.array(self._default_wobj.oframe_trans, dtype=np.float64),
+                    oframe_rot=np.array(self._default_wobj.oframe_rot, dtype=np.float64),
+                ),
+                task=task,
+            )
+        return self._rapid_wobj[key]
+
+    def set_rapid_variable_wobj(self, var: str, value: WObjData, task: str = "T_ROB1") -> None:
+        key = self._qualify_var(var, task)
+        self._rapid_wobj[key] = value
+        self._rapid[key] = self._wobjdata_to_rws_value(value)
+
+    def get_rapid_variable_tool(self, var: str, task: str = "T_ROB1") -> ToolData:
+        key = self._qualify_var(var, task)
+        if key not in self._rapid_tool:
+            self.set_rapid_variable_tool(
+                var,
+                ToolData(
+                    robhold=self._default_tool.robhold,
+                    tframe_trans=np.array(self._default_tool.tframe_trans, dtype=np.float64),
+                    tframe_rot=np.array(self._default_tool.tframe_rot, dtype=np.float64),
+                    tload=self._default_tool.tload,
+                ),
+                task=task,
+            )
+        return self._rapid_tool[key]
+
+    def set_rapid_variable_tool(self, var: str, value: ToolData, task: str = "T_ROB1") -> None:
+        key = self._qualify_var(var, task)
+        self._rapid_tool[key] = value
+        self._rapid[key] = self._tooldata_to_rws_value(value)
 
     # Files
     def get_ramdisk_path(self) -> str:

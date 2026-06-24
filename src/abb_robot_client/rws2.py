@@ -1,4 +1,5 @@
 import time
+import re
 from typing import List, Optional, Any, Union
 from pydantic import BaseModel
 from requests.auth import HTTPBasicAuth
@@ -8,7 +9,7 @@ import datetime
 from enum import IntEnum
 from loguru import logger
 import numpy as np
-from abb_robot_client.rws import ABBException, JointTarget, RobTarget
+from abb_robot_client.rws import ABBException, JointTarget, RobTarget, WObjData, ToolData
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -563,6 +564,160 @@ class RWS2:
         self.request_mastership()
         _res = self._do_post(f"rw/rapid/symbol/RAPID/{var1}/data?mastership=implicit", payload)
         self.release_mastership()
+
+    def _rws_value_to_wobjdata(self, val: str) -> WObjData:
+        m = re.match(
+            r'^\[\s*(TRUE|FALSE)\s*,\s*(TRUE|FALSE)\s*,\s*"([^"]*)"\s*,\s*\[\s*\[([^\]]+)\]\s*,\s*\[([^\]]+)\]\s*\]\s*,\s*\[\s*\[([^\]]+)\]\s*,\s*\[([^\]]+)\]\s*\]\s*\]$',
+            val,
+        )
+        if m is None:
+            raise Exception(f"Invalid wobjdata format: {val}")
+
+        robhold = m.group(1) == "TRUE"
+        ufprog = m.group(2) == "TRUE"
+        ufmec = m.group(3)
+        uframe_trans = np.fromstring(m.group(4), sep=",", dtype=np.float64)
+        uframe_rot = np.fromstring(m.group(5), sep=",", dtype=np.float64)
+        oframe_trans = np.fromstring(m.group(6), sep=",", dtype=np.float64)
+        oframe_rot = np.fromstring(m.group(7), sep=",", dtype=np.float64)
+
+        if not (uframe_trans.shape == (3,) and oframe_trans.shape == (3,)):
+            raise Exception("Invalid wobjdata translation vector length")
+        if not (uframe_rot.shape == (4,) and oframe_rot.shape == (4,)):
+            raise Exception("Invalid wobjdata quaternion length")
+
+        return WObjData(
+            robhold=robhold,
+            ufprog=ufprog,
+            ufmec=ufmec,
+            uframe_trans=uframe_trans,
+            uframe_rot=uframe_rot,
+            oframe_trans=oframe_trans,
+            oframe_rot=oframe_rot,
+        )
+
+    def _wobjdata_to_rws_value(self, val: WObjData) -> str:
+        if '"' in val.ufmec:
+            raise Exception("ufmec cannot contain double quotes")
+
+        uframe_trans = np.asarray(val.uframe_trans, dtype=np.float64).reshape(-1)
+        uframe_rot = np.asarray(val.uframe_rot, dtype=np.float64).reshape(-1)
+        oframe_trans = np.asarray(val.oframe_trans, dtype=np.float64).reshape(-1)
+        oframe_rot = np.asarray(val.oframe_rot, dtype=np.float64).reshape(-1)
+
+        if uframe_trans.shape != (3,) or oframe_trans.shape != (3,):
+            raise Exception("wobjdata translation vectors must have length 3")
+        if uframe_rot.shape != (4,) or oframe_rot.shape != (4,):
+            raise Exception("wobjdata quaternions must have length 4")
+
+        def _fmt_num(x: float) -> str:
+            s = format(float(x), ".6f").rstrip("0").rstrip(".")
+            return "0" if s in {"", "-0"} else s
+
+        def _fmt_arr(a: np.ndarray) -> str:
+            return ",".join(_fmt_num(x) for x in a)
+
+        return (
+            f"[{'TRUE' if val.robhold else 'FALSE'},{'TRUE' if val.ufprog else 'FALSE'},\"{val.ufmec}\","
+            f"[[{_fmt_arr(uframe_trans)}],[{_fmt_arr(uframe_rot)}]],"
+            f"[[{_fmt_arr(oframe_trans)}],[{_fmt_arr(oframe_rot)}]]]"
+        )
+
+    def get_rapid_variable_wobj(self, var: str, task: str = "T_ROB1") -> WObjData:
+        """
+        Get a RAPID pers variable and convert to WObjData.
+
+        :param var: The pers variable name
+        :param task: The task containing the pers variable
+        :return: The pers variable encoded as WObjData
+        """
+        v = self.get_rapid_variable(var, task)
+        return self._rws_value_to_wobjdata(v)
+
+    def set_rapid_variable_wobj(self, var: str, value: WObjData, task: str = "T_ROB1"):
+        """
+        Set a RAPID pers variable from WObjData.
+
+        :param var: The pers variable name
+        :param value: The new WObjData value
+        :param task: The task containing the pers variable
+        """
+        rws_value = self._wobjdata_to_rws_value(value)
+        self.set_rapid_variable(var, rws_value, task)
+
+    def _rws_value_to_tooldata(self, val: str) -> ToolData:
+        m = re.match(
+            r'^\[\s*(TRUE|FALSE)\s*,\s*\[\s*\[([^\]]+)\]\s*,\s*\[([^\]]+)\]\s*\]\s*,\s*(\[.*\])\s*\]$',
+            val,
+        )
+        if m is None:
+            raise Exception(f"Invalid tooldata format: {val}")
+
+        robhold = m.group(1) == "TRUE"
+        tframe_trans = np.fromstring(m.group(2), sep=",", dtype=np.float64)
+        tframe_rot = np.fromstring(m.group(3), sep=",", dtype=np.float64)
+        tload = m.group(4).strip()
+
+        if tframe_trans.shape != (3,):
+            raise Exception("Invalid tooldata translation vector length")
+        if tframe_rot.shape != (4,):
+            raise Exception("Invalid tooldata quaternion length")
+        if not (tload.startswith("[") and tload.endswith("]")):
+            raise Exception("Invalid tooldata loaddata segment")
+
+        return ToolData(
+            robhold=robhold,
+            tframe_trans=tframe_trans,
+            tframe_rot=tframe_rot,
+            tload=tload,
+        )
+
+    def _tooldata_to_rws_value(self, val: ToolData) -> str:
+        tframe_trans = np.asarray(val.tframe_trans, dtype=np.float64).reshape(-1)
+        tframe_rot = np.asarray(val.tframe_rot, dtype=np.float64).reshape(-1)
+        tload = str(val.tload).strip()
+
+        if tframe_trans.shape != (3,):
+            raise Exception("tooldata translation vector must have length 3")
+        if tframe_rot.shape != (4,):
+            raise Exception("tooldata quaternion must have length 4")
+        if not (tload.startswith("[") and tload.endswith("]")):
+            raise Exception("tooldata loaddata segment must be a RAPID list")
+
+        def _fmt_num(x: float) -> str:
+            s = format(float(x), ".6f").rstrip("0").rstrip(".")
+            return "0" if s in {"", "-0"} else s
+
+        def _fmt_arr(a: np.ndarray) -> str:
+            return ",".join(_fmt_num(x) for x in a)
+
+        return (
+            f"[{'TRUE' if val.robhold else 'FALSE'},"
+            f"[[{_fmt_arr(tframe_trans)}],[{_fmt_arr(tframe_rot)}]],"
+            f"{tload}]"
+        )
+
+    def get_rapid_variable_tool(self, var: str, task: str = "T_ROB1") -> ToolData:
+        """
+        Get a RAPID pers variable and convert to ToolData.
+
+        :param var: The pers variable name
+        :param task: The task containing the pers variable
+        :return: The pers variable encoded as ToolData
+        """
+        v = self.get_rapid_variable(var, task)
+        return self._rws_value_to_tooldata(v)
+
+    def set_rapid_variable_tool(self, var: str, value: ToolData, task: str = "T_ROB1"):
+        """
+        Set a RAPID pers variable from ToolData.
+
+        :param var: The pers variable name
+        :param value: The new ToolData value
+        :param task: The task containing the pers variable
+        """
+        rws_value = self._tooldata_to_rws_value(value)
+        self.set_rapid_variable(var, rws_value, task)
 
     def read_file(self, filename: str, directory: str = "") -> bytes:
         """
